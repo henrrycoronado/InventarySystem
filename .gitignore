@@ -1,0 +1,86 @@
+# ==========================================
+# INVENTORY SYSTEM / GESTOR CONTABLE
+# Stack: React, .NET 8, PostgreSQL, Docker
+# ==========================================
+
+# ==========================================
+# 1. FRONTEND (React / Node.js)
+# ==========================================
+# Dependencias y compilados
+**/node_modules/
+**/dist/
+**/build/
+**/.npm/
+**/.yarn/
+
+# Logs de errores
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Variables de entorno (¡NUNCA SUBIR CLAVES!)
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+
+# Cachés de herramientas (Vite, ESLint, etc.)
+.eslintcache
+**/dist-ssr/
+**/.vite/
+
+# ==========================================
+# 2. BACKEND (.NET 8 / C#)
+# ==========================================
+# Carpetas de compilación
+**/[Bb]in/
+**/[Oo]bj/
+
+# Archivos de usuario y configuraciones locales
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.rsp
+
+# Configuraciones locales (opcional, por si pones contraseñas reales aquí)
+# appsettings.Development.json 
+
+# Archivos de publicación y test
+**/[Tt]est[Rr]esults/
+*.publishsettings
+
+# ==========================================
+# 3. BASE DE DATOS Y DOCKER
+# ==========================================
+# MUY IMPORTANTE: Ignorar la carpeta donde Postgres guarda los datos físicos
+# (Ajusta el nombre si tu volumen en el docker-compose se llama diferente)
+DataBase/data/
+DataBase/pgdata/
+postgres-data/
+
+# Archivos de entorno específicos de Docker
+docker-compose.override.yml
+.env.docker
+
+# ==========================================
+# 4. IDEs Y SISTEMA OPERATIVO
+# ==========================================
+# Visual Studio / VS Code
+.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains (Rider, WebStorm)
+.idea/
+*.sln.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
