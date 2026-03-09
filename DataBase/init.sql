@@ -78,7 +78,7 @@ CREATE TABLE inventory.company_products (
     company_id          INT NOT NULL REFERENCES shared.companies(id),
     global_product_id   INT REFERENCES shared.global_products(id),
     local_name_alias    VARCHAR(150),
-    base_retail_price   DECIMAL(10,2) DEFAULT 0.00,
+    wholesale_price     DECIMAL(10,2) DEFAULT 0.00,
     is_active           BOOLEAN DEFAULT TRUE,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -87,8 +87,7 @@ CREATE TABLE inventory.company_skus (
     id                      SERIAL PRIMARY KEY,
     company_product_id      INT NOT NULL REFERENCES inventory.company_products(id),
     internal_sku            VARCHAR(50) NOT NULL,
-    wholesale_price         DECIMAL(10,2) DEFAULT 0.00,
-    retail_price_override   DECIMAL(10,2),
+    retail_price            DECIMAL(10,2) DEFAULT 0.00,
     is_active               BOOLEAN DEFAULT TRUE,
     created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (company_product_id, internal_sku)
@@ -230,6 +229,14 @@ CREATE TABLE sales.receipts (
 
 -- PdV / POS
 
+CREATE TABLE sales.pdv_stations (
+    id          SERIAL PRIMARY KEY,
+    company_id  INT NOT NULL REFERENCES shared.companies(id),
+    name        VARCHAR(100) NOT NULL,
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE sales.pdv_waiters (
     id          SERIAL PRIMARY KEY,
     company_id  INT NOT NULL REFERENCES shared.companies(id),
@@ -259,6 +266,7 @@ CREATE TABLE sales.pdv_menu_items (
     id          SERIAL PRIMARY KEY,
     menu_id     INT NOT NULL REFERENCES sales.pdv_menus(id),
     sku_id      INT NOT NULL REFERENCES inventory.company_skus(id),
+    station_id  INT REFERENCES sales.pdv_stations(id),
     name        VARCHAR(150) NOT NULL,
     price       DECIMAL(10,2) NOT NULL,
     is_active   BOOLEAN DEFAULT TRUE,
