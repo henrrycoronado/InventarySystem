@@ -1,146 +1,337 @@
 -- ==========================================
--- DDL: Estructura de InventarySystem
+-- InventarySystem — init.sql
+-- Schemas: shared | inventory | sales
 -- ==========================================
 
-CREATE TABLE companies (
-    id INT NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id)
+CREATE SCHEMA IF NOT EXISTS shared;
+CREATE SCHEMA IF NOT EXISTS inventory;
+CREATE SCHEMA IF NOT EXISTS sales;
+
+-- ==========================================
+-- SCHEMA: shared
+-- ==========================================
+
+CREATE TABLE shared.global_categories (
+    id          SERIAL PRIMARY KEY,
+    name        VARCHAR(100) NOT NULL,
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE warehouses (
-    id INT NOT NULL,
-    company_id INT NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    FOREIGN KEY (company_id) REFERENCES companies(id)
+CREATE TABLE shared.global_products (
+    id              SERIAL PRIMARY KEY,
+    category_id     INT REFERENCES shared.global_categories(id),
+    name            VARCHAR(150) NOT NULL,
+    brand           VARCHAR(100),
+    upc_barcode     VARCHAR(50) UNIQUE,
+    is_active       BOOLEAN DEFAULT TRUE,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE categories (
-    id INT NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id)
+CREATE TABLE shared.companies (
+    id          SERIAL PRIMARY KEY,
+    name        VARCHAR(100) NOT NULL,
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE products (
-    id INT NOT NULL,
-    category_id INT,
-    sku VARCHAR(50) NOT NULL,
-    name VARCHAR(150) NOT NULL,
-    unit VARCHAR(20) NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    FOREIGN KEY (category_id) REFERENCES categories(id)
-);
-
-CREATE TABLE company_products (
-    company_id INT NOT NULL,
-    product_id INT NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    PRIMARY KEY (company_id, product_id),
-    FOREIGN KEY (company_id) REFERENCES companies(id),
-    FOREIGN KEY (product_id) REFERENCES products(id)
-);
-
-CREATE TABLE stocks (
-    product_id INT NOT NULL,
-    warehouse_id INT NOT NULL,
-    quantity DECIMAL(10, 2) NOT NULL DEFAULT 0,
-    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (product_id, warehouse_id),
-    FOREIGN KEY (product_id) REFERENCES products(id),
-    FOREIGN KEY (warehouse_id) REFERENCES warehouses(id)
-);
-
-CREATE TABLE movements (
-    id INT NOT NULL,
-    company_id INT NOT NULL,
-    warehouse_id INT NOT NULL,
-    type VARCHAR(10) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
-    movement_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    notes TEXT,
-    PRIMARY KEY (id),
-    FOREIGN KEY (company_id) REFERENCES companies(id),
-    FOREIGN KEY (warehouse_id) REFERENCES warehouses(id)
-);
-
-CREATE TABLE movement_details (
-    id INT NOT NULL,
-    movement_id INT NOT NULL,
-    product_id INT NOT NULL,
-    quantity DECIMAL(10, 2) NOT NULL,
-    PRIMARY KEY (id),
-    FOREIGN KEY (movement_id) REFERENCES movements(id),
-    FOREIGN KEY (product_id) REFERENCES products(id)
-);
-
-CREATE TABLE kardex (
-    id INT NOT NULL,
-    company_id INT NOT NULL,
-    warehouse_id INT NOT NULL,
-    product_id INT NOT NULL,
-    movement_detail_id INT NOT NULL,
-    transaction_type VARCHAR(10) NOT NULL,
-    quantity DECIMAL(10, 2) NOT NULL,
-    balance_after DECIMAL(10, 2) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    FOREIGN KEY (company_id) REFERENCES companies(id),
-    FOREIGN KEY (warehouse_id) REFERENCES warehouses(id),
-    FOREIGN KEY (product_id) REFERENCES products(id),
-    FOREIGN KEY (movement_detail_id) REFERENCES movement_details(id)
+CREATE TABLE shared.warehouses (
+    id          SERIAL PRIMARY KEY,
+    company_id  INT NOT NULL REFERENCES shared.companies(id),
+    name        VARCHAR(100) NOT NULL,
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ==========================================
--- DML: Datos Semilla (Seed)
+-- SCHEMA: inventory
 -- ==========================================
 
-INSERT INTO companies (id, name) VALUES 
-(1, 'Ferretería Tuerca Mágica'),
-(2, 'Minimarket El Sol');
+CREATE TABLE inventory.movement_statuses (
+    id          SERIAL PRIMARY KEY,
+    code        VARCHAR(20) NOT NULL UNIQUE,
+    name        VARCHAR(50) NOT NULL,
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-INSERT INTO warehouses (id, company_id, name) VALUES 
-(1, 1, 'Bodega Central Ferretería'),
-(2, 2, 'Almacén Tienda Minimarket');
+CREATE TABLE inventory.movement_types (
+    id          SERIAL PRIMARY KEY,
+    code        VARCHAR(20) NOT NULL UNIQUE,
+    name        VARCHAR(50) NOT NULL,
+    operation   CHAR(1) NOT NULL,
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-INSERT INTO categories (id, name) VALUES 
-(1, 'Herramientas'),
-(2, 'Bebidas');
+CREATE TABLE inventory.company_attributes (
+    id          SERIAL PRIMARY KEY,
+    company_id  INT NOT NULL REFERENCES shared.companies(id),
+    name        VARCHAR(50) NOT NULL,
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (company_id, name)
+);
 
-INSERT INTO products (id, category_id, sku, name, unit) VALUES 
-(1, 1, 'HRR-001', 'Martillo de Acero 500g', 'UNIDAD'),
-(2, 2, 'BEB-001', 'Coca-Cola 2L', 'UNIDAD'),
-(3, 2, 'BEB-002', 'Agua Mineral 1L', 'UNIDAD');
+CREATE TABLE inventory.company_products (
+    id                  SERIAL PRIMARY KEY,
+    company_id          INT NOT NULL REFERENCES shared.companies(id),
+    global_product_id   INT REFERENCES shared.global_products(id),
+    local_name_alias    VARCHAR(150),
+    base_retail_price   DECIMAL(10,2) DEFAULT 0.00,
+    is_active           BOOLEAN DEFAULT TRUE,
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-INSERT INTO company_products (company_id, product_id) VALUES 
-(1, 1),
-(2, 2), 
-(2, 3);
+CREATE TABLE inventory.company_skus (
+    id                      SERIAL PRIMARY KEY,
+    company_product_id      INT NOT NULL REFERENCES inventory.company_products(id),
+    internal_sku            VARCHAR(50) NOT NULL,
+    wholesale_price         DECIMAL(10,2) DEFAULT 0.00,
+    retail_price_override   DECIMAL(10,2),
+    is_active               BOOLEAN DEFAULT TRUE,
+    created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (company_product_id, internal_sku)
+);
 
--- Movimiento Confirmado (Ferretería)
-INSERT INTO movements (id, company_id, warehouse_id, type, status, notes) VALUES 
-(1, 1, 1, 'IN', 'CONFIRMED', 'Compra inicial de martillos');
+CREATE TABLE inventory.sku_attribute_values (
+    id              SERIAL PRIMARY KEY,
+    sku_id          INT NOT NULL REFERENCES inventory.company_skus(id),
+    attribute_id    INT NOT NULL REFERENCES inventory.company_attributes(id),
+    value           VARCHAR(50) NOT NULL,
+    is_active       BOOLEAN DEFAULT TRUE,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (sku_id, attribute_id)
+);
 
-INSERT INTO movement_details (id, movement_id, product_id, quantity) VALUES 
-(1, 1, 1, 50.00);
+CREATE TABLE inventory.batches (
+    id                  SERIAL PRIMARY KEY,
+    sku_id              INT NOT NULL REFERENCES inventory.company_skus(id),
+    batch_number        VARCHAR(50) NOT NULL,
+    manufacture_date    DATE,
+    expiration_date     DATE,
+    is_active           BOOLEAN DEFAULT TRUE,
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (sku_id, batch_number)
+);
 
-INSERT INTO kardex (id, company_id, warehouse_id, product_id, movement_detail_id, transaction_type, quantity, balance_after) VALUES 
-(1, 1, 1, 1, 1, 'IN', 50.00, 50.00);
+CREATE TABLE inventory.stocks (
+    id              SERIAL PRIMARY KEY,
+    warehouse_id    INT NOT NULL REFERENCES shared.warehouses(id),
+    sku_id          INT NOT NULL REFERENCES inventory.company_skus(id),
+    batch_id        INT REFERENCES inventory.batches(id),
+    quantity        DECIMAL(10,2) NOT NULL DEFAULT 0,
+    is_active       BOOLEAN DEFAULT TRUE,
+    last_updated    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (warehouse_id, sku_id, batch_id)
+);
 
-INSERT INTO stocks (product_id, warehouse_id, quantity) VALUES 
-(1, 1, 50.00);
+CREATE TABLE inventory.movements (
+    id                      SERIAL PRIMARY KEY,
+    company_id              INT NOT NULL REFERENCES shared.companies(id),
+    warehouse_id            INT NOT NULL REFERENCES shared.warehouses(id),
+    target_warehouse_id     INT REFERENCES shared.warehouses(id),
+    status_id               INT NOT NULL REFERENCES inventory.movement_statuses(id),
+    type_id                 INT NOT NULL REFERENCES inventory.movement_types(id),
+    movement_date           TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    notes                   TEXT,
+    is_active               BOOLEAN DEFAULT TRUE,
+    created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
--- Movimiento en Borrador (Minimarket)
-INSERT INTO movements (id, company_id, warehouse_id, type, status, notes) VALUES 
-(2, 2, 2, 'IN', 'DRAFT', 'Llegó el camión, contando mercancía...');
+CREATE TABLE inventory.movement_details (
+    id              SERIAL PRIMARY KEY,
+    movement_id     INT NOT NULL REFERENCES inventory.movements(id),
+    sku_id          INT NOT NULL REFERENCES inventory.company_skus(id),
+    batch_id        INT REFERENCES inventory.batches(id),
+    quantity        DECIMAL(10,2) NOT NULL,
+    unit_cost       DECIMAL(10,2),
+    is_active       BOOLEAN DEFAULT TRUE,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-INSERT INTO movement_details (id, movement_id, product_id, quantity) VALUES 
-(2, 2, 2, 24.00), 
-(3, 2, 3, 12.00);
+CREATE TABLE inventory.kardex (
+    id                      SERIAL PRIMARY KEY,
+    company_id              INT NOT NULL REFERENCES shared.companies(id),
+    warehouse_id            INT NOT NULL REFERENCES shared.warehouses(id),
+    sku_id                  INT NOT NULL REFERENCES inventory.company_skus(id),
+    batch_id                INT REFERENCES inventory.batches(id),
+    movement_detail_id      INT NOT NULL REFERENCES inventory.movement_details(id),
+    type_id                 INT NOT NULL REFERENCES inventory.movement_types(id),
+    quantity                DECIMAL(10,2) NOT NULL,
+    balance_after           DECIMAL(10,2) NOT NULL,
+    is_active               BOOLEAN DEFAULT TRUE,
+    created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==========================================
+-- SCHEMA: sales
+-- ==========================================
+
+CREATE TABLE sales.sale_statuses (
+    id          SERIAL PRIMARY KEY,
+    code        VARCHAR(20) NOT NULL UNIQUE,
+    name        VARCHAR(50) NOT NULL,
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE sales.customers (
+    id          SERIAL PRIMARY KEY,
+    company_id  INT NOT NULL REFERENCES shared.companies(id),
+    name        VARCHAR(150) NOT NULL,
+    phone       VARCHAR(20),
+    email       VARCHAR(100),
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE sales.sellers (
+    id          SERIAL PRIMARY KEY,
+    company_id  INT NOT NULL REFERENCES shared.companies(id),
+    name        VARCHAR(150) NOT NULL,
+    phone       VARCHAR(20),
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE sales.sales (
+    id              SERIAL PRIMARY KEY,
+    company_id      INT NOT NULL REFERENCES shared.companies(id),
+    warehouse_id    INT NOT NULL REFERENCES shared.warehouses(id),
+    seller_id       INT REFERENCES sales.sellers(id),
+    customer_id     INT REFERENCES sales.customers(id),
+    status_id       INT NOT NULL REFERENCES sales.sale_statuses(id),
+    sale_date       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    notes           TEXT,
+    is_active       BOOLEAN DEFAULT TRUE,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE sales.sale_details (
+    id              SERIAL PRIMARY KEY,
+    sale_id         INT NOT NULL REFERENCES sales.sales(id),
+    sku_id          INT NOT NULL REFERENCES inventory.company_skus(id),
+    batch_id        INT REFERENCES inventory.batches(id),
+    quantity        DECIMAL(10,2) NOT NULL,
+    unit_price      DECIMAL(10,2) NOT NULL,
+    is_active       BOOLEAN DEFAULT TRUE,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE sales.receipts (
+    id              SERIAL PRIMARY KEY,
+    sale_id         INT NOT NULL REFERENCES sales.sales(id),
+    total_amount    DECIMAL(10,2) NOT NULL,
+    issued_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active       BOOLEAN DEFAULT TRUE,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- PdV / POS
+
+CREATE TABLE sales.pdv_waiters (
+    id          SERIAL PRIMARY KEY,
+    company_id  INT NOT NULL REFERENCES shared.companies(id),
+    name        VARCHAR(150) NOT NULL,
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE sales.pdv_tables (
+    id          SERIAL PRIMARY KEY,
+    company_id  INT NOT NULL REFERENCES shared.companies(id),
+    name        VARCHAR(50) NOT NULL,
+    capacity    INT,
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE sales.pdv_menus (
+    id          SERIAL PRIMARY KEY,
+    company_id  INT NOT NULL REFERENCES shared.companies(id),
+    name        VARCHAR(100) NOT NULL,
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE sales.pdv_menu_items (
+    id          SERIAL PRIMARY KEY,
+    menu_id     INT NOT NULL REFERENCES sales.pdv_menus(id),
+    sku_id      INT NOT NULL REFERENCES inventory.company_skus(id),
+    name        VARCHAR(150) NOT NULL,
+    price       DECIMAL(10,2) NOT NULL,
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE sales.pdv_order_statuses (
+    id          SERIAL PRIMARY KEY,
+    code        VARCHAR(20) NOT NULL UNIQUE,
+    name        VARCHAR(50) NOT NULL,
+    is_active   BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE sales.pdv_orders (
+    id              SERIAL PRIMARY KEY,
+    company_id      INT NOT NULL REFERENCES shared.companies(id),
+    table_id        INT NOT NULL REFERENCES sales.pdv_tables(id),
+    waiter_id       INT NOT NULL REFERENCES sales.pdv_waiters(id),
+    status_id       INT NOT NULL REFERENCES sales.pdv_order_statuses(id),
+    customer_id     INT REFERENCES sales.customers(id),
+    sale_id         INT REFERENCES sales.sales(id),
+    opened_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    closed_at       TIMESTAMP,
+    is_active       BOOLEAN DEFAULT TRUE,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE sales.pdv_order_details (
+    id              SERIAL PRIMARY KEY,
+    order_id        INT NOT NULL REFERENCES sales.pdv_orders(id),
+    menu_item_id    INT NOT NULL REFERENCES sales.pdv_menu_items(id),
+    quantity        DECIMAL(10,2) NOT NULL,
+    unit_price      DECIMAL(10,2) NOT NULL,
+    notes           TEXT,
+    is_active       BOOLEAN DEFAULT TRUE,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==========================================
+-- SEED DATA
+-- ==========================================
+
+INSERT INTO inventory.movement_statuses (code, name) VALUES
+('DRAFT',       'Borrador'),
+('CONFIRMED',   'Confirmado'),
+('CANCELLED',   'Anulado');
+
+INSERT INTO inventory.movement_types (code, name, operation) VALUES
+('IN_PURCHASE',     'Entrada por Compra',       '+'),
+('OUT_SALE',        'Salida por Venta',          '-'),
+('ADJ_ADD',         'Ajuste Positivo',           '+'),
+('ADJ_SUB',         'Ajuste Negativo',           '-'),
+('TRANSFER_OUT',    'Traspaso Salida',           '-'),
+('TRANSFER_IN',     'Traspaso Entrada',          '+');
+
+INSERT INTO sales.sale_statuses (code, name) VALUES
+('DRAFT',       'Borrador'),
+('CONFIRMED',   'Confirmada'),
+('CANCELLED',   'Anulada'),
+('RETURNED',    'Devuelta');
+
+INSERT INTO sales.pdv_order_statuses (code, name) VALUES
+('OPEN',        'Abierta'),
+('BILLED',      'Facturada'),
+('PAID',        'Pagada'),
+('CANCELLED',   'Anulada');
+
+-- ==========================================
+-- SEQUENCE SYNC
+-- ==========================================
+
+SELECT setval(pg_get_serial_sequence('inventory.movement_statuses', 'id'), coalesce(max(id), 0) + 1, false) FROM inventory.movement_statuses;
+SELECT setval(pg_get_serial_sequence('inventory.movement_types', 'id'), coalesce(max(id), 0) + 1, false) FROM inventory.movement_types;
+SELECT setval(pg_get_serial_sequence('sales.sale_statuses', 'id'), coalesce(max(id), 0) + 1, false) FROM sales.sale_statuses;
+SELECT setval(pg_get_serial_sequence('sales.pdv_order_statuses', 'id'), coalesce(max(id), 0) + 1, false) FROM sales.pdv_order_statuses;
