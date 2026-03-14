@@ -9,6 +9,10 @@ using InventarySystem.Api.Modules.Inventory.Domain.Interfaces;
 using InventarySystem.Api.Modules.Inventory.Application.Interfaces;
 using InventarySystem.Api.Modules.Inventory.Application.Services;
 using InventarySystem.Api.Modules.Inventory.Infrastructure.Repositories;
+using InventarySystem.Api.Modules.Sales.Domain.Interfaces;
+using InventarySystem.Api.Modules.Sales.Application.Interfaces;
+using InventarySystem.Api.Modules.Sales.Application.Services;
+using InventarySystem.Api.Modules.Sales.Infrastructure.Repositories;
 
 Env.Load();
 
@@ -35,11 +39,22 @@ builder.Services.AddScoped<IMovementRepository, MovementRepository>();
 builder.Services.AddScoped<IMovementDetailRepository, MovementDetailRepository>();
 builder.Services.AddScoped<IKardexRepository, KardexRepository>();
 
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<ISellerRepository, SellerRepository>();
+builder.Services.AddScoped<ISaleRepository, SaleRepository>();
+builder.Services.AddScoped<ISaleDetailRepository, SaleDetailRepository>();
+builder.Services.AddScoped<IReceiptRepository, ReceiptRepository>();
+
 builder.Services.AddScoped<ICompanyProductService, CompanyProductService>();
 builder.Services.AddScoped<ICompanySkuService, CompanySkuService>();
 builder.Services.AddScoped<IStockService, StockService>();
 builder.Services.AddScoped<IMovementService, MovementService>();
 builder.Services.AddScoped<IKardexService, KardexService>();
+
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<ISellerService, SellerService>();
+builder.Services.AddScoped<ISaleService, SaleService>();
+builder.Services.AddScoped<IReceiptService, ReceiptService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
