@@ -5,6 +5,10 @@ using InventarySystem.Api.src.Core.Infrastructure.Repositories;
 using InventarySystem.Api.src.Core.Domain.Interfaces;
 using InventarySystem.Api.src.Core.Application.Interfaces;
 using InventarySystem.Api.src.Core.Application.Services;
+using InventarySystem.Api.Modules.Inventory.Domain.Interfaces;
+using InventarySystem.Api.Modules.Inventory.Application.Interfaces;
+using InventarySystem.Api.Modules.Inventory.Application.Services;
+using InventarySystem.Api.Modules.Inventory.Infrastructure.Repositories;
 
 Env.Load();
 
@@ -23,6 +27,19 @@ builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 builder.Services.AddScoped<IGlobalCategoryService, GlobalCategoryService>();
 builder.Services.AddScoped<IGlobalProductService, GlobalProductService>();
+
+builder.Services.AddScoped<ICompanyProductRepository, CompanyProductRepository>();
+builder.Services.AddScoped<ICompanySkuRepository, CompanySkuRepository>();
+builder.Services.AddScoped<IStockRepository, StockRepository>();
+builder.Services.AddScoped<IMovementRepository, MovementRepository>();
+builder.Services.AddScoped<IMovementDetailRepository, MovementDetailRepository>();
+builder.Services.AddScoped<IKardexRepository, KardexRepository>();
+
+builder.Services.AddScoped<ICompanyProductService, CompanyProductService>();
+builder.Services.AddScoped<ICompanySkuService, CompanySkuService>();
+builder.Services.AddScoped<IStockService, StockService>();
+builder.Services.AddScoped<IMovementService, MovementService>();
+builder.Services.AddScoped<IKardexService, KardexService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -60,19 +77,5 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 app.MapControllers();
-
-app.MapGet("/health", () => Results.Ok(new
-{
-    status = "ok",
-    timestamp = DateTime.UtcNow
-})).WithTags("Health");
-
-app.Run();
-
-app.MapGet("/health", () => Results.Ok(new
-{
-    status = "ok",
-    timestamp = DateTime.UtcNow
-})).WithTags("Health");
 
 app.Run();
